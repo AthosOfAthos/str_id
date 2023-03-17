@@ -3,4 +3,9 @@ name = "str_id"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = ["serde"]
+serde = ["dep:serde"]
+
 [dependencies]
+serde = { version = "1.0.*", optional = true }

@@ -1,4 +1,7 @@
 
+#[cfg(feature = "serde")]
+mod serialize;
+
 /// A small fixed length string 
 #[repr(C, align(16))]
 #[derive(Clone, Copy)]
