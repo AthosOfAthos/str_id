@@ -10,33 +10,19 @@ impl Serialize for Name {
 
 struct NameVisitor {}
 
-impl NameVisitor {
-    fn deserialize<E: serde::de::Error>(self, name: &str) -> Result<Name, E> {
+impl<'de> Visitor<'de> for NameVisitor {
+    type Value = Name;
+
+    fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+        write!(formatter, "A str between 1 and {} chars long with no null chars", Name::LENGTH)
+    }
+
+    fn visit_str<E: serde::de::Error>(self, name: &str) -> Result<Self::Value, E> {
         if name.is_empty() { return Err(E::custom("Name cannot be empty")) }
         if name.len() > Name::LENGTH { return Err(E::custom("Name too long")) }
         if name.contains('\0') { return Err(E::custom("Name may not contain null")) }
         
         Ok(Name::new(name))
-    }
-}
-
-impl<'de> Visitor<'de> for NameVisitor {
-    type Value = Name;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(formatter, "A str between 1 and {} chars long with no null chars", Name::LENGTH)
-    }
-
-    fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
-        self.deserialize(v)
-    }
-
-    fn visit_borrowed_str<E: serde::de::Error>(self, v: &'de str) -> Result<Self::Value, E>{
-        self.deserialize(v)
-    }
-
-    fn visit_string<E: serde::de::Error>(self, v: String) -> Result<Self::Value, E>{
-        self.deserialize(&v)
     }
 }
 

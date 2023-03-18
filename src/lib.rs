@@ -1,3 +1,4 @@
+#![no_std]
 
 #[cfg(feature = "serde")]
 mod serialize;
@@ -43,7 +44,7 @@ impl Name {
     pub const fn as_str(&self) -> &str {
         // This assumes Name::new was fed a valid UTF8 str
         unsafe {
-            std::str::from_utf8_unchecked(&*std::ptr::slice_from_raw_parts(self.array.as_ptr(), self.len()))
+            core::str::from_utf8_unchecked(&*core::ptr::slice_from_raw_parts(self.array.as_ptr(), self.len()))
         }
     }
 }
@@ -65,20 +66,20 @@ impl PartialEq for Name {
 
 impl Eq for Name {}
 
-impl std::fmt::Debug for Name {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Debug for Name {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.as_str())
     }
 }
 
-impl std::fmt::Display for Name {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for Name {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.as_str())
     }
 }
 
-impl std::hash::Hash for Name {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+impl core::hash::Hash for Name {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         state.write(&self.array);
     }
 }
