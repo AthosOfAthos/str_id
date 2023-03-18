@@ -53,7 +53,7 @@ impl Name {
     /// ```
     pub const fn len(&self) -> usize {
         let mut index = 0;
-        while index <= Self::LENGTH {
+        while index < Self::LENGTH {
             if self.array[index] == NULL {
                 return index;
             }
@@ -110,5 +110,42 @@ impl core::fmt::Display for Name {
 impl core::hash::Hash for Name {
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         state.write(&self.array);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Name;
+    
+    #[test]
+    fn odd_names() {
+        Name::new("absentmindedness");
+        Name::new("Old Hag Syndrome");
+        Name::new("ありがとう");
+        Name::new("WorkingAsIntendd");
+    }
+
+    #[test]
+    fn eq() {
+        const AIR: Name = Name::new("air");
+        const STONE: Name = Name::new("stone");
+
+        assert_eq!(AIR, Name::new("air"));
+        assert_eq!(STONE, STONE);
+        assert_ne!(AIR, STONE);
+    }
+
+    #[test]
+    fn str() {
+        const EXAMPLE_STR: &str = "example";
+        const EXAMPLE: Name = Name::new(EXAMPLE_STR);
+        
+        assert_eq!(EXAMPLE.as_str(), EXAMPLE_STR);
+        assert_eq!(EXAMPLE.len(), EXAMPLE_STR.len());
+    }
+
+    #[test]
+    fn max_len() {
+        assert_eq!(Name::new("biocompatibility").len(), 16);
     }
 }
