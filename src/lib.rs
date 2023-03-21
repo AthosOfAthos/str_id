@@ -80,16 +80,35 @@ impl Name {
 
 impl PartialEq for Name {
     fn eq(&self, other: &Name) -> bool {
-        for index in 0..Self::LENGTH {
-            if self.array[index] == NULL && other.array[index] == NULL {
-                return true;
+        if cfg!(target_feature = "sse4.2") {
+            unsafe {
+                let eq: u8;
+                core::arch::asm!(
+                    "movdqa {lhs}, [{self}]",
+                    "movdqa {rhs}, [{other}]",
+                    "pcmpistri {lhs}, {rhs}, 9",
+                    "seto {eq}",
+                    self = in(reg) self,
+                    other = in(reg) other,
+                    lhs = out(xmm_reg) _,
+                    rhs = out(xmm_reg) _,
+                    eq = out(reg_byte) eq,
+                    out("ecx") _,
+                );
+                core::mem::transmute(eq)// Causes unnecessary and op??
             }
-
-            if self.array[index] != other.array[index] {
-                return false;
+        } else {
+            for index in 0..Self::LENGTH {
+                if self.array[index] == NULL && other.array[index] == NULL {
+                    return true;
+                }
+    
+                if self.array[index] != other.array[index] {
+                    return false;
+                }
             }
+            true
         }
-        return true;
     }
 }
 
@@ -147,5 +166,23 @@ mod tests {
     #[test]
     fn max_len() {
         assert_eq!(Name::new("biocompatibility").len(), 16);
+    }
+
+    #[test]
+    #[should_panic]
+    fn null_chars() {
+        Name::new("Test\0String");
+    }
+
+    #[test]
+    #[should_panic]
+    fn empty() {
+        Name::new("");
+    }
+
+    #[test]
+    #[should_panic]
+    fn too_long() {
+        Name::new("12345678901234567");
     }
 }
