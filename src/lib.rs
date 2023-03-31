@@ -76,39 +76,61 @@ impl Name {
             core::str::from_utf8_unchecked(&*core::ptr::slice_from_raw_parts(self.array.as_ptr(), self.len()))
         }
     }
+
+    #[cfg(target_feature = "sse4.2")]
+    unsafe fn eq_sse(&self, other: &Name) -> bool {
+        let eq: u8;
+        core::arch::asm!(
+            "movdqa {lhs}, [{self}]",
+            "movdqa {rhs}, [{other}]",
+            "pcmpistri {lhs}, {rhs}, 9",
+            "seto {eq}",
+            self = in(reg) self,
+            other = in(reg) other,
+            lhs = out(xmm_reg) _,
+            rhs = out(xmm_reg) _,
+            eq = out(reg_byte) eq,
+            out("ecx") _,
+        );
+        core::mem::transmute(eq)
+    }
+
+    #[cfg(target_feature = "simd128")]
+    unsafe fn eq_simd128(&self, other: &Name) -> bool {
+        use core::arch::wasm32::*;
+        let lhs = v128_load(self as *const Name as *const v128);
+        let rhs = v128_load(other as *const Name as *const v128);
+        let eq = i8x16_eq(lhs, rhs);
+        i8x16_all_true(eq)
+    }
 }
 
+#[allow(unreachable_code)]
 impl PartialEq for Name {
     fn eq(&self, other: &Name) -> bool {
-        if cfg!(target_feature = "sse4.2") {
-            unsafe {
-                let eq: u8;
-                core::arch::asm!(
-                    "movdqa {lhs}, [{self}]",
-                    "movdqa {rhs}, [{other}]",
-                    "pcmpistri {lhs}, {rhs}, 9",
-                    "seto {eq}",
-                    self = in(reg) self,
-                    other = in(reg) other,
-                    lhs = out(xmm_reg) _,
-                    rhs = out(xmm_reg) _,
-                    eq = out(reg_byte) eq,
-                    out("ecx") _,
-                );
-                core::mem::transmute(eq)// Causes unnecessary and op??
-            }
-        } else {
-            for index in 0..Self::LENGTH {
-                if self.array[index] == NULL && other.array[index] == NULL {
-                    return true;
-                }
-    
-                if self.array[index] != other.array[index] {
-                    return false;
-                }
-            }
-            true
+        // x86
+        #[cfg(target_feature = "sse4.2")]
+        unsafe {
+            // TODO: dynamic feature detection
+            return self.eq_sse(other);
         }
+
+        // wasm32
+        #[cfg(target_feature = "simd128")]
+        unsafe {
+            return self.eq_simd128(other);
+        }
+        
+        for index in 0..Self::LENGTH {
+            if self.array[index] == NULL && other.array[index] == NULL {
+                return true;
+            }
+    
+            if self.array[index] != other.array[index] {
+                return false;
+            }
+        }
+        true
     }
 }
 
